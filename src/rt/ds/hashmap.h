@@ -279,7 +279,7 @@ namespace verona::rt
       if (key == nullptr)
         return end();
 
-      const auto hash = bits::hash((void*)key);
+      const auto hash = bits::hash(key->id());
       auto index = hash & (capacity() - 1);
       for (size_t probe_len = 0; probe_len <= longest_probe; probe_len++)
       {
@@ -308,7 +308,7 @@ namespace verona::rt
 
       assert(key_of(entry) != 0);
       const auto key = unmark_key(key_of(entry));
-      const auto hash = bits::hash((void*)key);
+      const auto hash = bits::hash(((const Object*)key)->id());
       auto index = hash & (capacity() - 1);
       size_t iter_index = ~(size_t)0;
 
@@ -355,7 +355,9 @@ namespace verona::rt
 
       // Maximum probe length reached, resize and retry.
       resize(alloc);
-      return insert(alloc, std::forward<E>(entry));
+      // Entry may have been swapped prior to resize.
+      insert(alloc, std::forward<E>(entry));
+      return std::make_pair(true, find((const KeyType*)key));
     }
 
     /**
@@ -424,7 +426,7 @@ namespace verona::rt
           out << " ∅";
           continue;
         }
-        out << " (" << (const KeyType*)unmark_key(key_of(slots[i]))
+        out << " (" << ((const KeyType*)unmark_key(key_of(slots[i])))->id()
             << ", probe " << (size_t)probe_index(key) << ")";
       }
       out << " } cap: " << capacity();
